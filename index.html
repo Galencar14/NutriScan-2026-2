@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NutriScan Amazônia</title>
+<style>
+:root{--bg:#fafaf7;--fg:#1d2b1f;--card:#fff;--line:#d8dcd2;}
+@media (prefers-color-scheme:dark){:root{--bg:#151a15;--fg:#eef2ea;--card:#1f261f;--line:#364036;}}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,sans-serif;}
+main{max-width:480px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:8px 0}
+button{width:100%;padding:14px;margin:6px 0;font-size:1rem;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+button.main{background:#2e7d32;color:#fff;border:none;font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}
+input{width:100%;box-sizing:border-box;padding:12px;font-size:1rem;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+.tela{display:none}.tela.on{display:block}
+#reader,#camFoto{width:100%;border-radius:12px;overflow:hidden}
+#camFoto canvas{width:100%;height:auto;display:block}
+.faixa{padding:20px;border-radius:14px;color:#fff;text-align:center;margin:12px 0}
+.faixa h2{margin:0 0 4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
+.aviso{font-size:.85rem;opacity:.75}
+</style>
+</head>
+<body>
+<main>
+  <!-- TELA 1: inicial -->
+<!-- TELA 1: inicial -->
+
+<!-- TELA 1: inicial -->
+<!-- TELA 1: inicial -->
+<section id="inicial" class="tela on">
+  <h1>NutriScan Amazônia</h1>
+  <p class="aviso" id="statusBase">Carregando base de alimentos...</p>
+  <button class="main" id="btnCodigo" onclick="abrirCodigo()" disabled>Ler código de barras</button>
+  <button class="main" id="btnFoto" onclick="abrirFoto()" disabled>Tirar foto do alimento</button>
+  <button id="btnTeste" onclick="mostrar('teste')" disabled>Modo teste (sem câmera)</button>
+</section>
+
+<!-- TELA 2: código de barras -->
+<section id="codigo" class="tela">
+  <h2>Aponte para o código</h2>
+  <div id="reader"></div>
+  <p class="aviso" id="msgCodigo"></p>
+  <input id="manual" inputmode="numeric" placeholder="Ou digite o código de barras">
+  <button onclick="buscarCodigo(document.getElementById('manual').value)">Buscar</button>
+  <button onclick="voltar()">Voltar</button>
+</section>
+
+<!-- TELA 3: foto -->
+<section id="foto" class="tela">
+  <h2>Foto do alimento</h2>
+  <p class="aviso" id="msgFoto">Carregando câmera e modelo...</p>
+  <div id="camFoto"></div>
+  <button class="main" onclick="tirarFoto()">Reconhecer</button>
+  <button onclick="voltar()">Voltar</button>
+</section>
+
+<!-- TELA 4: pergunta -->
+<section id="pergunta" class="tela">
+  <h2 id="textoPergunta"></h2>
+  <div id="opcoes"></div>
+</section>
+
+<!-- TELA 5: resultado -->
+<section id="resultado" class="tela">
+  <div class="faixa" id="faixa"><h2 id="grupoNome"></h2><div id="alimentoNome"></div><div id="grupoDef" class="aviso" style="margin-top:10px;opacity:.9"></div></div>
+  <div class="card" id="justificativa"></div>
+  <div class="card" id="msgGrupo"></div>
+  <div class="card" id="troca" style="display:none"></div>
+  <button class="main" onclick="voltar()">Novo alimento</button>
+</section>
+
+<!-- TELA TESTE -->
+<section id="teste" class="tela">
+  <h2>Modo teste</h2>
+  <div id="listaTeste"></div>
+  <button onclick="voltar()">Voltar</button>
+</section>
+
+</main>
+
+<!-- Bibliotecas: código de barras + Teachable Machine -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+<script>
+// ===== 1. BASE DE DADOS =====
+// Os dados ficam no arquivo alimentos.json (mesma pasta deste arquivo).
+// Quem edita os alimentos, códigos e mensagens é esse JSON, não este código.
+let GRUPOS = {};
+let ALIMENTOS = [];
+
+async function carregarBase(){
+  const status = document.getElementById("statusBase");
+  try{
+    const r = await fetch("alimentos.json");
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const dados = await r.json();
+    GRUPOS = dados.grupos;
+    ALIMENTOS = dados.alimentos;
+    montarModoTeste();
+    status.textContent = ALIMENTOS.length + " alimentos carregados.";
+    ["btnCodigo","btnFoto","btnTeste"].forEach(id => document.getElementById(id).disabled = false);
+  }catch(e){
+    status.textContent = "Erro ao carregar alimentos.json (" + e.message + "). " +
+      "Abra pelo link do site (HTTPS) ou por um servidor local, não pelo arquivo direto.";
+  }
+}
+
+// ===== 2. NAVEGAÇÃO =====
+function mostrar(id){
+  document.querySelectorAll(".tela").forEach(t=>t.classList.remove("on"));
+  document.getElementById(id).classList.add("on");
+}
+async function voltar(){ await pararCameras(); mostrar("inicial"); }
+async function pararCameras(){
+  if(leitor){ try{ await leitor.stop(); }catch(e){} leitor = null; }
+  if(webcam){ try{ webcam.stop(); }catch(e){} webcam = null; }
+  document.getElementById("camFoto").innerHTML = "";
+}
+
+// ===== 3. CÓDIGO DE BARRAS =====
+let leitor = null;
+async function abrirCodigo(){
+  mostrar("codigo");
+  const msg = document.getElementById("msgCodigo");
+  msg.textContent = "";
+  try{
+    leitor = new Html5Qrcode("reader", {
+      formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.QR_CODE]
+    });
+    await leitor.start({facingMode:"environment"}, {fps:10, qrbox:{width:280,height:140}},
+      async texto => {
+        await pararCameras();
+        msg.textContent = "Código lido: " + texto;   // útil para anotar o número real do produto
+        buscarCodigo(texto);
+      });
+  }catch(e){
+    msg.textContent = "Câmera indisponível (precisa de HTTPS e permissão). Use o campo abaixo.";
+  }
+}
+
+async function buscarCodigo(codigo){
+  codigo = (codigo||"").trim();
+  // 1º: base própria (alimentos.json)
+  const achou = ALIMENTOS.find(a => a.codigo === codigo);
+  if(achou){ return mostrarResultado(achou); }
+  // 2º: Open Food Facts
+  try{
+    const r = await fetch("https://world.openfoodfacts.org/api/v2/product/"+codigo+".json");
+    const d = await r.json();
+    if(d.status === 1 && d.product && d.product.nova_group){
+      return mostrarResultado({nome:d.product.product_name || "Produto "+codigo,
+        grupo:String(d.product.nova_group), justificativa:"Classificação vinda do Open Food Facts."});
+    }
+  }catch(e){}
+  alert("Produto não cadastrado. Código: " + codigo);
+  mostrar("inicial");
+}
+
+// ===== 4. FOTO (Teachable Machine) =====
+// Coloque a pasta "modelo" (model.json, metadata.json, weights.bin) ao lado deste arquivo.
+const PASTA_MODELO = "https://teachablemachine.withgoogle.com/models/8TZvzR7s1/";
+const CONFIANCA_MINIMA = 0.70;
+let modelo = null, webcam = null;
+
+async function abrirFoto(){
+  mostrar("foto");
+  const msg = document.getElementById("msgFoto");
+  msg.textContent = "Carregando câmera e modelo...";
+  try{
+    if(!modelo){
+      modelo = await tmImage.load(PASTA_MODELO+"model.json", PASTA_MODELO+"metadata.json");
+    }
+    webcam = new tmImage.Webcam(320, 320, false);       // false = não espelhar
+    await webcam.setup({facingMode:"environment"});     // câmera traseira
+    await webcam.play();
+    document.getElementById("camFoto").appendChild(webcam.canvas);
+    (function loop(){ if(webcam){ webcam.update(); requestAnimationFrame(loop); } })();
+    msg.textContent = "Enquadre o alimento e toque em Reconhecer.";
+  }catch(e){
+    msg.textContent = "Erro: " + e.message + " (confira HTTPS, permissão da câmera e a pasta modelo).";
+  }
+}
+
+async function tirarFoto(){
+  if(!modelo || !webcam) return;
+  const previsoes = await modelo.predict(webcam.canvas);
+  previsoes.sort((a,b) => b.probability - a.probability);
+  const melhor = previsoes[0];
+  if(melhor.className === "outros" || melhor.probability < CONFIANCA_MINIMA){
+    document.getElementById("msgFoto").textContent =
+      "Não reconheci (" + Math.round(melhor.probability*100) + "%). Tente outra foto.";
+    return;
+  }
+  await pararCameras();
+  const alimento = ALIMENTOS.find(a => a.chave === melhor.className);
+  if(alimento) mostrarResultado(alimento);
+  else alert("Classe sem cadastro no alimentos.json: " + melhor.className);
+}
+
+// ===== 5. PERGUNTA + RESULTADO =====
+function mostrarResultado(a){
+  if(a.pergunta){ return fazerPergunta(a); }
+  const g = GRUPOS[a.grupo];
+  document.getElementById("faixa").style.background = g.cor;
+  document.getElementById("grupoNome").textContent = (g.rotulo || "NOVA "+a.grupo) + ": " + g.nome;
+  document.getElementById("grupoDef").textContent = g.definicao || "";
+  document.getElementById("alimentoNome").textContent = a.nome;
+  document.getElementById("justificativa").textContent = a.justificativa;
+  document.getElementById("msgGrupo").textContent = g.msg;
+  const t = document.getElementById("troca");
+  if(a.troca){ t.style.display="block"; t.textContent = "Troca sugerida: "+a.troca; }
+  else { t.style.display="none"; }
+  mostrar("resultado");
+}
+function fazerPergunta(a){
+  document.getElementById("textoPergunta").textContent = a.pergunta.texto;
+  const div = document.getElementById("opcoes");
+  div.innerHTML = "";
+  a.pergunta.opcoes.forEach(o=>{
+    const b = document.createElement("button");
+    b.textContent = o.texto;
+    b.onclick = () => mostrarResultado(ALIMENTOS.find(x => x.chave === o.vai));
+    div.appendChild(b);
+  });
+  mostrar("pergunta");
+}
+
+// ===== 6. MODO TESTE (montado depois que o JSON carrega) =====
+function montarModoTeste(){
+  const lista = document.getElementById("listaTeste");
+  lista.innerHTML = "";
+  ALIMENTOS.forEach(a=>{
+    const b = document.createElement("button");
+    b.textContent = a.nome;
+    b.onclick = () => mostrarResultado(a);
+    lista.appendChild(b);
+  });
+}
+
+// ===== INÍCIO =====
+carregarBase();
+</script>
+<script src="resultado.js"></script>
+</body>
+</html>

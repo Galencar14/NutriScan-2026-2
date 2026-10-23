@@ -1,0 +1,137 @@
+{
+  "grupos": {
+    "1": {
+      "nome": "In natura ou minimamente processado",
+      "cor": "#2e7d32",
+      "msg": "Base da alimentação: prefira sempre.",
+      "definicao": "Alimentos in natura ou minimamente processados (classificação vinda do Open Food Facts)."
+    },
+    "1a": {
+      "nome": "In natura",
+      "cor": "#2e7d32",
+      "msg": "Base da alimentação: prefira sempre.",
+      "definicao": "Alimentos obtidos diretamente de plantas ou animais, sem alterações após serem retirados da natureza.",
+      "rotulo": "NOVA 1"
+    },
+    "1b": {
+      "nome": "Minimamente processado",
+      "cor": "#558b2f",
+      "msg": "Base da alimentação: prefira sempre.",
+      "definicao": "Alimentos que passam por processos simples, como limpeza, moagem, secagem ou congelamento, sem adição de sal, açúcar ou óleos.",
+      "rotulo": "NOVA 1"
+    },
+    "2": {
+      "nome": "Ingrediente culinário processado",
+      "cor": "#1565c0",
+      "msg": "Use em pequenas quantidades para temperar e cozinhar.",
+      "definicao": "Substâncias extraídas de alimentos ou da natureza, usadas para temperar e cozinhar.",
+      "rotulo": "NOVA 2"
+    },
+    "3": {
+      "nome": "Processado",
+      "cor": "#ef6c00",
+      "msg": "Consuma com moderação, como parte de refeições.",
+      "definicao": "Alimentos produzidos a partir de alimentos in natura ou minimamente processados, com adição de sal, açúcar ou outras substâncias para conservação ou sabor.",
+      "rotulo": "NOVA 3"
+    },
+    "4": {
+      "nome": "Ultraprocessado",
+      "cor": "#c62828",
+      "msg": "Evite. Prefira alimentos in natura.",
+      "definicao": "Formulações industriais que contêm diversos ingredientes e aditivos, geralmente com pouco ou nenhum alimento inteiro.",
+      "rotulo": "NOVA 4"
+    }
+  },
+  "alimentos": [
+    {
+      "codigo": "7890000000055",
+      "chave": "sardinha",
+      "nome": "Sardinha em lata",
+      "grupo": "3",
+      "justificativa": "Peixe conservado em óleo e sal.",
+      "troca": null,
+      "pergunta": null
+    },
+    {
+      "codigo": "7890000000062",
+      "chave": "refri",
+      "nome": "Refrigerante",
+      "grupo": "4",
+      "justificativa": "Formulação industrial com açúcar e aditivos.",
+      "troca": "Suco de laranja",
+      "pergunta": null
+    },
+    {
+      "codigo": "7890000000079",
+      "chave": "biscoito",
+      "nome": "Biscoito recheado",
+      "grupo": "4",
+      "justificativa": "Formulação industrial com gordura, açúcar e aditivos.",
+      "troca": "Pipoca caseira",
+      "pergunta": null
+    },
+    {
+      "codigo": "7890000000086",
+      "chave": "miojo",
+      "nome": "Miojo",
+      "grupo": "4",
+      "justificativa": "Formulação industrial com farinha refinada, gordura, sal e aditivos.",
+      "troca": "Macarrão com molho caseiro",
+      "pergunta": null
+    },
+    {
+      "codigo": "7890000000093",
+      "chave": "cupuacu",
+      "nome": "Cupuaçu (fruto)",
+      "grupo": "1a",
+      "justificativa": "Fruto inteiro, sem processamento.",
+      "troca": null,
+      "pergunta": null
+    },
+    {
+      "codigo": "7890000000109",
+      "chave": "castanha",
+      "nome": "Castanha do Pará",
+      "grupo": "1a",
+      "justificativa": "Castanha crua, sem sal.",
+      "troca": null,
+      "pergunta": null
+    },
+    {
+      "codigo": "7890000000123",
+      "chave": "tapereba",
+      "nome": "Taperebá",
+      "grupo": "1a",
+      "justificativa": "Fruto inteiro, sem processamento.",
+      "troca": null,
+      "pergunta": null
+    },
+    {
+      "codigo": "7890000000130",
+      "chave": "arroz",
+      "nome": "Arroz",
+      "grupo": "1b",
+      "justificativa": "Grão apenas limpo e beneficiado, sem sal, açúcar ou óleo.",
+      "troca": null,
+      "pergunta": null
+    },
+    {
+      "codigo": "7890000000147",
+      "chave": "feijao",
+      "nome": "Feijão",
+      "grupo": "1b",
+      "justificativa": "Grão apenas limpo e seco, sem sal, açúcar ou óleo.",
+      "troca": null,
+      "pergunta": null
+    },
+    {
+      "codigo": "7890000000154",
+      "chave": "milho_conserva",
+      "nome": "Milho em conserva",
+      "grupo": "3",
+      "justificativa": "Milho in natura conservado em água e sal.",
+      "troca": null,
+      "pergunta": null
+    }
+  ]
+}
